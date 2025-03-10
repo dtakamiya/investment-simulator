@@ -166,7 +166,7 @@ const ResultSummary = ({ result }: { result: SimulationResult }) => (
 
 const InvestmentChart = ({ data }: { data: YearlyResult[] }) => {
   const [isVisible, setIsVisible] = useState(false);
-  const [chartType, setChartType] = useState<'line' | 'area'>('line');
+  const [chartType, setChartType] = useState<'line' | 'area'>('area');
   const chartRef = useRef(null);
 
   useEffect(() => {

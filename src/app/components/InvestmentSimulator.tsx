@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Container,
   Paper,
@@ -160,117 +160,156 @@ const ResultSummary = ({ result }: { result: SimulationResult }) => (
   </Grid>
 );
 
-const InvestmentChart = ({ data }: { data: YearlyResult[] }) => (
-  <Box sx={{ width: '100%', height: 400, overflow: 'hidden' }}>
-    <ResponsiveContainer>
-      <LineChart
-        data={data}
-        margin={{
-          top: 20,
-          right: 30,
-          left: 20,
-          bottom: 20,
-        }}
-      >
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.1)" />
-        <XAxis 
-          dataKey="year" 
-          label={{ 
-            value: '経過年数', 
-            position: 'insideBottom', 
-            offset: -10
+const InvestmentChart = ({ data }: { data: YearlyResult[] }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const chartRef = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      {
+        threshold: 0.1
+      }
+    );
+
+    if (chartRef.current) {
+      observer.observe(chartRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <Box 
+      ref={chartRef}
+      sx={{ 
+        width: '100%', 
+        height: 400, 
+        overflow: 'hidden',
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
+        transition: 'opacity 0.5s ease-out, transform 0.5s ease-out'
+      }}
+    >
+      <ResponsiveContainer>
+        <LineChart
+          data={data}
+          margin={{
+            top: 20,
+            right: 30,
+            left: 20,
+            bottom: 20,
           }}
-          tick={{ fontSize: 12 }}
-        />
-        <YAxis 
-          tickFormatter={formatYenValue}
-          width={80}
-          tick={{ fontSize: 12 }}
-          label={{ 
-            value: '金額', 
-            angle: -90, 
-            position: 'insideLeft',
-            offset: -5,
-            style: { textAnchor: 'middle', fontSize: 12 }
-          }}
-        />
-        <Tooltip 
-          formatter={(value: number) => [formatYenValue(value)]}
-          labelFormatter={(year) => `${year}年目`}
-          contentStyle={{
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            borderRadius: 8,
-            border: 'none',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-            padding: '10px 14px',
-          }}
-        />
-        <Legend 
-          verticalAlign="top" 
-          height={36}
-          wrapperStyle={{
-            paddingBottom: '20px',
-            fontSize: '12px'
-          }}
-        />
-        <Line
-          type="monotone"
-          dataKey="totalValue"
-          name="評価額"
-          stroke="#82ca9d"
-          strokeWidth={3}
-          dot={false}
-          activeDot={{ 
-            r: 6,
-            stroke: '#82ca9d',
-            strokeWidth: 2,
-            fill: '#fff'
-          }}
-          isAnimationActive={true}
-          animationDuration={2000}
-          animationEasing="ease-in-out"
-          animationBegin={0}
-        />
-        <Line
-          type="monotone"
-          dataKey="investment"
-          name="投資額"
-          stroke="#8884d8"
-          strokeWidth={3}
-          dot={false}
-          activeDot={{ 
-            r: 6,
-            stroke: '#8884d8',
-            strokeWidth: 2,
-            fill: '#fff'
-          }}
-          isAnimationActive={true}
-          animationDuration={2000}
-          animationEasing="ease-in-out"
-          animationBegin={300}
-        />
-        <Line
-          type="monotone"
-          dataKey="interest"
-          name="運用益"
-          stroke="#ffc658"
-          strokeWidth={3}
-          dot={false}
-          activeDot={{ 
-            r: 6,
-            stroke: '#ffc658',
-            strokeWidth: 2,
-            fill: '#fff'
-          }}
-          isAnimationActive={true}
-          animationDuration={2000}
-          animationEasing="ease-in-out"
-          animationBegin={600}
-        />
-      </LineChart>
-    </ResponsiveContainer>
-  </Box>
-);
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.1)" />
+          <XAxis 
+            dataKey="year" 
+            label={{ 
+              value: '経過年数', 
+              position: 'insideBottom', 
+              offset: -10
+            }}
+            tick={{ fontSize: 12 }}
+          />
+          <YAxis 
+            tickFormatter={formatYenValue}
+            width={80}
+            tick={{ fontSize: 12 }}
+            label={{ 
+              value: '金額', 
+              angle: -90, 
+              position: 'insideLeft',
+              offset: -5,
+              style: { textAnchor: 'middle', fontSize: 12 }
+            }}
+          />
+          <Tooltip 
+            formatter={(value: number) => [formatYenValue(value)]}
+            labelFormatter={(year) => `${year}年目`}
+            contentStyle={{
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              borderRadius: 8,
+              border: 'none',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+              padding: '10px 14px',
+            }}
+          />
+          <Legend 
+            verticalAlign="top" 
+            height={36}
+            wrapperStyle={{
+              paddingBottom: '20px',
+              fontSize: '12px'
+            }}
+          />
+          {isVisible && (
+            <>
+              <Line
+                type="monotone"
+                dataKey="totalValue"
+                name="評価額"
+                stroke="#82ca9d"
+                strokeWidth={3}
+                dot={false}
+                activeDot={{ 
+                  r: 6,
+                  stroke: '#82ca9d',
+                  strokeWidth: 2,
+                  fill: '#fff'
+                }}
+                isAnimationActive={true}
+                animationDuration={2000}
+                animationEasing="ease-in-out"
+                animationBegin={0}
+              />
+              <Line
+                type="monotone"
+                dataKey="investment"
+                name="投資額"
+                stroke="#8884d8"
+                strokeWidth={3}
+                dot={false}
+                activeDot={{ 
+                  r: 6,
+                  stroke: '#8884d8',
+                  strokeWidth: 2,
+                  fill: '#fff'
+                }}
+                isAnimationActive={true}
+                animationDuration={2000}
+                animationEasing="ease-in-out"
+                animationBegin={300}
+              />
+              <Line
+                type="monotone"
+                dataKey="interest"
+                name="運用益"
+                stroke="#ffc658"
+                strokeWidth={3}
+                dot={false}
+                activeDot={{ 
+                  r: 6,
+                  stroke: '#ffc658',
+                  strokeWidth: 2,
+                  fill: '#fff'
+                }}
+                isAnimationActive={true}
+                animationDuration={2000}
+                animationEasing="ease-in-out"
+                animationBegin={600}
+              />
+            </>
+          )}
+        </LineChart>
+      </ResponsiveContainer>
+    </Box>
+  );
+};
 
 const YearlyDetails = ({ results }: { results: YearlyResult[] }) => (
   <Grid container spacing={2}>

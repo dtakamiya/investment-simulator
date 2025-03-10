@@ -382,11 +382,11 @@ const InvestmentChart = ({ data }: { data: YearlyResult[] }) => {
               />
               <Area
                 type="monotone"
-                dataKey="interest"
-                name="運用益"
+                dataKey="investment"
+                name="投資額"
                 stackId="1"
-                stroke="#ffc658"
-                fill="#ffc658"
+                stroke="#8884d8"
+                fill="#8884d8"
                 isAnimationActive={true}
                 animationDuration={2000}
                 animationEasing="ease-in-out"
@@ -394,11 +394,11 @@ const InvestmentChart = ({ data }: { data: YearlyResult[] }) => {
               />
               <Area
                 type="monotone"
-                dataKey="investment"
-                name="投資額"
+                dataKey="interest"
+                name="運用益"
                 stackId="1"
-                stroke="#8884d8"
-                fill="#8884d8"
+                stroke="#ffc658"
+                fill="#ffc658"
                 isAnimationActive={true}
                 animationDuration={2000}
                 animationEasing="ease-in-out"

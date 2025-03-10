@@ -292,6 +292,7 @@ export default function InvestmentSimulator() {
   const [annualReturn, setAnnualReturn] = useState<string>('');
   const [years, setYears] = useState<string>('');
   const [result, setResult] = useState<SimulationResult | null>(null);
+  const [chartKey, setChartKey] = useState<number>(0);
 
   const inputFields: InputField[] = [
     {
@@ -334,6 +335,7 @@ export default function InvestmentSimulator() {
   ];
 
   const calculateInvestment = () => {
+    setChartKey(prev => prev + 1); // グラフを強制的に再レンダリング
     const initial = parseFloat(initialInvestment) * 10000;
     const monthly = parseFloat(monthlyInvestment) * 10000;
     const annual = parseFloat(annualReturn) / 100;
@@ -343,7 +345,7 @@ export default function InvestmentSimulator() {
       return;
     }
 
-    const yearlyResults = [];
+    const yearlyResults: YearlyResult[] = [];
     let totalValue = initial;
     let cumulativeInvestment = initial;
 
@@ -448,7 +450,14 @@ export default function InvestmentSimulator() {
                       <Typography variant="h5" gutterBottom sx={{ color: theme.palette.primary.main }}>
                         資産推移グラフ
                       </Typography>
-                      <InvestmentChart data={result.yearlyResults} />
+                      <motion.div
+                        key={chartKey}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5 }}
+                      >
+                        <InvestmentChart data={result.yearlyResults} />
+                      </motion.div>
                     </CardContent>
                   </Card>
                 </Grid>

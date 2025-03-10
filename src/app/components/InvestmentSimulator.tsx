@@ -270,8 +270,8 @@ const InvestmentChart = ({ data }: { data: YearlyResult[] }) => {
             }
           }}
         >
-          <ToggleButton value="line">折れ線グラフ</ToggleButton>
           <ToggleButton value="area">積み上げグラフ</ToggleButton>
+          <ToggleButton value="line">折れ線グラフ</ToggleButton>
         </ToggleButtonGroup>
       </Box>
 

@@ -195,8 +195,16 @@ const InvestmentChart = ({ data }: { data: YearlyResult[] }) => (
           stroke="#82ca9d"
           strokeWidth={3}
           dot={false}
-          activeDot={{ r: 6 }}
+          activeDot={{ 
+            r: 6,
+            stroke: '#82ca9d',
+            strokeWidth: 2,
+            fill: '#fff'
+          }}
           isAnimationActive={true}
+          animationDuration={2000}
+          animationEasing="ease-in-out"
+          animationBegin={0}
         />
         <Line
           type="monotone"
@@ -205,8 +213,16 @@ const InvestmentChart = ({ data }: { data: YearlyResult[] }) => (
           stroke="#8884d8"
           strokeWidth={3}
           dot={false}
-          activeDot={{ r: 6 }}
+          activeDot={{ 
+            r: 6,
+            stroke: '#8884d8',
+            strokeWidth: 2,
+            fill: '#fff'
+          }}
           isAnimationActive={true}
+          animationDuration={2000}
+          animationEasing="ease-in-out"
+          animationBegin={300}
         />
         <Line
           type="monotone"
@@ -215,8 +231,16 @@ const InvestmentChart = ({ data }: { data: YearlyResult[] }) => (
           stroke="#ffc658"
           strokeWidth={3}
           dot={false}
-          activeDot={{ r: 6 }}
+          activeDot={{ 
+            r: 6,
+            stroke: '#ffc658',
+            strokeWidth: 2,
+            fill: '#fff'
+          }}
           isAnimationActive={true}
+          animationDuration={2000}
+          animationEasing="ease-in-out"
+          animationBegin={600}
         />
       </LineChart>
     </ResponsiveContainer>

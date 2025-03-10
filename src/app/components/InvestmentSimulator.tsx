@@ -102,36 +102,61 @@ const InputFields = ({ fields }: { fields: InputField[] }) => {
 
 const ResultSummary = ({ result }: { result: SimulationResult }) => (
   <Grid container spacing={3}>
-    <Grid item xs={12} md={4}>
-      <Box sx={{ textAlign: 'center', p: 2 }}>
-        <Typography variant="subtitle1" color="textSecondary">
-          総投資額
-        </Typography>
-        <Typography variant="h4" sx={{ color: '#8884d8' }}>
-          {formatYenValue(result.totalInvestment)}
-        </Typography>
-      </Box>
-    </Grid>
-    <Grid item xs={12} md={4}>
-      <Box sx={{ textAlign: 'center', p: 2 }}>
-        <Typography variant="subtitle1" color="textSecondary">
-          最終評価額
-        </Typography>
-        <Typography variant="h4" sx={{ color: '#82ca9d' }}>
-          {formatYenValue(Math.round(result.totalReturn))}
-        </Typography>
-      </Box>
-    </Grid>
-    <Grid item xs={12} md={4}>
-      <Box sx={{ textAlign: 'center', p: 2 }}>
-        <Typography variant="subtitle1" color="textSecondary">
-          運用益
-        </Typography>
-        <Typography variant="h4" sx={{ color: '#ffc658' }}>
-          {formatYenValue(Math.round(result.totalReturn - result.totalInvestment))}
-        </Typography>
-      </Box>
-    </Grid>
+    {[
+      { label: '総投資額', value: result.totalInvestment, color: '#8884d8' },
+      { label: '最終評価額', value: Math.round(result.totalReturn), color: '#82ca9d' },
+      { label: '運用益', value: Math.round(result.totalReturn - result.totalInvestment), color: '#ffc658' }
+    ].map((item, index) => (
+      <Grid item xs={12} md={4} key={index}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: index * 0.1 }}
+        >
+          <Box 
+            sx={{ 
+              textAlign: 'center', 
+              p: 3,
+              background: `linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)`,
+              borderRadius: 2,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: '0 12px 40px rgba(0,0,0,0.12)',
+              }
+            }}
+          >
+            <Typography 
+              variant="subtitle1" 
+              sx={{ 
+                color: 'text.secondary',
+                fontSize: '1.1rem',
+                fontWeight: 500,
+                mb: 1
+              }}
+            >
+              {item.label}
+            </Typography>
+            <Typography 
+              variant="h4" 
+              sx={{ 
+                background: `linear-gradient(45deg, ${item.color} 30%, ${item.color}88 90%)`,
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                color: 'transparent',
+                fontWeight: 'bold',
+                fontSize: '2.2rem'
+              }}
+            >
+              {formatYenValue(item.value)}
+            </Typography>
+          </Box>
+        </motion.div>
+      </Grid>
+    ))}
   </Grid>
 );
 
@@ -378,11 +403,14 @@ export default function InvestmentSimulator() {
         transition={{ duration: 0.5 }}
       >
         <Paper 
-          elevation={3} 
+          elevation={0}
           sx={{ 
             p: 4,
-            background: 'linear-gradient(145deg, #ffffff 0%, #f5f5f5 100%)',
+            background: 'linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
             borderRadius: 4,
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255,255,255,0.3)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
           }}
         >
           <Typography 
@@ -395,28 +423,45 @@ export default function InvestmentSimulator() {
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               color: 'transparent',
-              fontWeight: 'bold',
+              fontWeight: 900,
+              letterSpacing: '-0.5px',
+              textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
             }}
           >
             資産運用シミュレーター
           </Typography>
 
-          <Card sx={{ mb: 4, backgroundColor: 'rgba(255, 255, 255, 0.8)' }}>
-            <CardContent>
+          <Card 
+            elevation={0}
+            sx={{ 
+              mb: 4, 
+              background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: 3,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+            }}
+          >
+            <CardContent sx={{ p: 4 }}>
               <InputFields fields={inputFields} />
-              <Box sx={{ mt: 3 }}>
+              <Box sx={{ mt: 4 }}>
                 <Button
                   variant="contained"
                   color="primary"
                   onClick={calculateInvestment}
                   fullWidth
                   sx={{
-                    py: 1.5,
+                    py: 2,
                     background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                    boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
-                    transition: 'transform 0.2s',
+                    boxShadow: '0 8px 16px rgba(33, 203, 243, .3)',
+                    borderRadius: 2,
+                    fontSize: '1.1rem',
+                    fontWeight: 'bold',
+                    letterSpacing: '1px',
+                    transition: 'all 0.3s ease',
                     '&:hover': {
-                      transform: 'scale(1.02)',
+                      transform: 'scale(1.02) translateY(-2px)',
+                      boxShadow: '0 12px 20px rgba(33, 203, 243, .4)',
                     },
                   }}
                 >
@@ -434,9 +479,26 @@ export default function InvestmentSimulator() {
             >
               <Grid container spacing={4}>
                 <Grid item xs={12}>
-                  <Card sx={{ backgroundColor: 'rgba(255, 255, 255, 0.8)' }}>
-                    <CardContent>
-                      <Typography variant="h5" gutterBottom sx={{ color: theme.palette.primary.main }}>
+                  <Card 
+                    elevation={0}
+                    sx={{ 
+                      background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      borderRadius: 3,
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                    }}
+                  >
+                    <CardContent sx={{ p: 4 }}>
+                      <Typography 
+                        variant="h5" 
+                        gutterBottom 
+                        sx={{ 
+                          color: theme.palette.primary.main,
+                          fontWeight: 700,
+                          mb: 3
+                        }}
+                      >
                         シミュレーション結果
                       </Typography>
                       <ResultSummary result={result} />
@@ -445,9 +507,26 @@ export default function InvestmentSimulator() {
                 </Grid>
 
                 <Grid item xs={12}>
-                  <Card sx={{ backgroundColor: 'rgba(255, 255, 255, 0.8)' }}>
-                    <CardContent>
-                      <Typography variant="h5" gutterBottom sx={{ color: theme.palette.primary.main }}>
+                  <Card 
+                    elevation={0}
+                    sx={{ 
+                      background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      borderRadius: 3,
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                    }}
+                  >
+                    <CardContent sx={{ p: 4 }}>
+                      <Typography 
+                        variant="h5" 
+                        gutterBottom 
+                        sx={{ 
+                          color: theme.palette.primary.main,
+                          fontWeight: 700,
+                          mb: 3
+                        }}
+                      >
                         資産推移グラフ
                       </Typography>
                       <motion.div
@@ -463,9 +542,26 @@ export default function InvestmentSimulator() {
                 </Grid>
 
                 <Grid item xs={12}>
-                  <Card sx={{ backgroundColor: 'rgba(255, 255, 255, 0.8)' }}>
-                    <CardContent>
-                      <Typography variant="h5" gutterBottom sx={{ color: theme.palette.primary.main }}>
+                  <Card 
+                    elevation={0}
+                    sx={{ 
+                      background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      borderRadius: 3,
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+                    }}
+                  >
+                    <CardContent sx={{ p: 4 }}>
+                      <Typography 
+                        variant="h5" 
+                        gutterBottom 
+                        sx={{ 
+                          color: theme.palette.primary.main,
+                          fontWeight: 700,
+                          mb: 3
+                        }}
+                      >
                         年次詳細
                       </Typography>
                       <YearlyDetails results={result.yearlyResults} />

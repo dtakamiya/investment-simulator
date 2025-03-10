@@ -173,7 +173,8 @@ const InvestmentChart = ({ data }: { data: YearlyResult[] }) => {
         }
       },
       {
-        threshold: 0.1
+        threshold: 0.1,
+        rootMargin: '50px'
       }
     );
 
@@ -190,7 +191,6 @@ const InvestmentChart = ({ data }: { data: YearlyResult[] }) => {
       sx={{ 
         width: '100%', 
         height: 400, 
-        overflow: 'hidden',
         opacity: isVisible ? 1 : 0,
         transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
         transition: 'opacity 0.5s ease-out, transform 0.5s ease-out'
@@ -247,64 +247,60 @@ const InvestmentChart = ({ data }: { data: YearlyResult[] }) => {
               fontSize: '12px'
             }}
           />
-          {isVisible && (
-            <>
-              <Line
-                type="monotone"
-                dataKey="totalValue"
-                name="評価額"
-                stroke="#82ca9d"
-                strokeWidth={3}
-                dot={false}
-                activeDot={{ 
-                  r: 6,
-                  stroke: '#82ca9d',
-                  strokeWidth: 2,
-                  fill: '#fff'
-                }}
-                isAnimationActive={true}
-                animationDuration={2000}
-                animationEasing="ease-in-out"
-                animationBegin={0}
-              />
-              <Line
-                type="monotone"
-                dataKey="investment"
-                name="投資額"
-                stroke="#8884d8"
-                strokeWidth={3}
-                dot={false}
-                activeDot={{ 
-                  r: 6,
-                  stroke: '#8884d8',
-                  strokeWidth: 2,
-                  fill: '#fff'
-                }}
-                isAnimationActive={true}
-                animationDuration={2000}
-                animationEasing="ease-in-out"
-                animationBegin={300}
-              />
-              <Line
-                type="monotone"
-                dataKey="interest"
-                name="運用益"
-                stroke="#ffc658"
-                strokeWidth={3}
-                dot={false}
-                activeDot={{ 
-                  r: 6,
-                  stroke: '#ffc658',
-                  strokeWidth: 2,
-                  fill: '#fff'
-                }}
-                isAnimationActive={true}
-                animationDuration={2000}
-                animationEasing="ease-in-out"
-                animationBegin={600}
-              />
-            </>
-          )}
+          <Line
+            type="monotone"
+            dataKey="totalValue"
+            name="評価額"
+            stroke="#82ca9d"
+            strokeWidth={3}
+            dot={false}
+            activeDot={{ 
+              r: 6,
+              stroke: '#82ca9d',
+              strokeWidth: 2,
+              fill: '#fff'
+            }}
+            isAnimationActive={true}
+            animationDuration={2000}
+            animationEasing="ease-in-out"
+            animationBegin={0}
+          />
+          <Line
+            type="monotone"
+            dataKey="investment"
+            name="投資額"
+            stroke="#8884d8"
+            strokeWidth={3}
+            dot={false}
+            activeDot={{ 
+              r: 6,
+              stroke: '#8884d8',
+              strokeWidth: 2,
+              fill: '#fff'
+            }}
+            isAnimationActive={true}
+            animationDuration={2000}
+            animationEasing="ease-in-out"
+            animationBegin={300}
+          />
+          <Line
+            type="monotone"
+            dataKey="interest"
+            name="運用益"
+            stroke="#ffc658"
+            strokeWidth={3}
+            dot={false}
+            activeDot={{ 
+              r: 6,
+              stroke: '#ffc658',
+              strokeWidth: 2,
+              fill: '#fff'
+            }}
+            isAnimationActive={true}
+            animationDuration={2000}
+            animationEasing="ease-in-out"
+            animationBegin={600}
+          />
         </LineChart>
       </ResponsiveContainer>
     </Box>

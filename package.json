@@ -2,14 +2,14 @@
   "name": "investment-simulator",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://dtakamiya.github.io/investment-simulator",
+  "homepage": "https://dtakamiya.github.io/investment-simulator/",
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
+    "dev": "next dev",
+    "build": "next build && touch out/.nojekyll",
     "start": "next start",
     "lint": "next lint",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d out"
+    "predeploy": "NODE_ENV=production npm run build",
+    "deploy": "gh-pages -d out --dotfiles"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -30,6 +30,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/webpack": "^5.28.5",
     "eslint": "^9",
     "eslint-config-next": "15.2.1",
     "gh-pages": "^6.3.0",

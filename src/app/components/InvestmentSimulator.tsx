@@ -1,710 +1,422 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useCallback, Component, ErrorInfo, ReactNode } from 'react';
 import {
   Container,
   Paper,
-  TextField,
   Button,
   Typography,
   Box,
   Card,
   CardContent,
-  Divider,
   useTheme,
-  TextFieldProps,
   Grid,
-  ToggleButton,
-  ToggleButtonGroup,
+  useMediaQuery,
+  alpha,
 } from '@mui/material';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-} from 'recharts';
 import { motion } from 'framer-motion';
+import { calculateInvestment, SimulationResult } from '../utils/investmentCalculator';
+import { convertToYen, convertToDecimal } from '../utils/formatters';
+import { isValidNumber, isValidInteger, isValidDecimal } from '../utils/validators';
+import InputFields, { InputFieldProps } from './InputFields';
+import ResultSummary from './ResultSummary';
+import InvestmentChart from './InvestmentChart';
+import YearlyDetails from './YearlyDetails';
+import ThemeToggle from './ThemeToggle';
 
-// モーションコンポーネント
-const MotionCard = motion.create(Card);
-
-// 型定義
-interface YearlyResult {
-  year: number;
-  investment: number;
-  totalValue: number;
-  interest: number;
-}
-
-interface SimulationResult {
-  totalInvestment: number;
-  totalReturn: number;
-  yearlyResults: YearlyResult[];
-}
-
-interface InputField {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  helperText: string;
-  inputProps: TextFieldProps['inputProps'];
-}
-
-// ユーティリティ関数
-const formatYenValue = (value: number): string => {
-  if (value >= 100000000) {
-    return `${(value / 100000000).toFixed(1)}億円`;
+/**
+ * エラーバウンダリーコンポーネント
+ */
+class ErrorBoundary extends Component<
+  { children: ReactNode, fallback?: ReactNode },
+  { hasError: boolean, error: Error | null }
+> {
+  constructor(props: { children: ReactNode, fallback?: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
   }
-  if (value >= 10000) {
-    return `${(value / 10000).toFixed(0)}万円`;
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
   }
-  return `${value.toLocaleString()}円`;
-};
 
-// サブコンポーネント
-const InputFields = ({ fields }: { fields: InputField[] }) => {
-  const theme = useTheme();
-  
-  return (
-    <Grid container spacing={3}>
-      {fields.map((field, index) => (
-        <Grid item xs={12} sm={6} md={3} key={index}>
-          <TextField
-            fullWidth
-            label={field.label}
-            type="number"
-            value={field.value}
-            onChange={(e) => field.onChange(e.target.value)}
-            variant="outlined"
-            inputProps={field.inputProps}
-            helperText={field.helperText}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                '&:hover fieldset': {
-                  borderColor: theme.palette.primary.main,
-                },
-              },
-            }}
-          />
-        </Grid>
-      ))}
-    </Grid>
-  );
-};
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('投資シミュレーターでエラーが発生しました:', error, errorInfo);
+  }
 
-const ResultSummary = ({ result }: { result: SimulationResult }) => (
-  <Grid container spacing={3}>
-    {[
-      { label: '総投資額', value: result.totalInvestment, color: '#8884d8' },
-      { label: '最終評価額', value: Math.round(result.totalReturn), color: '#82ca9d' },
-      { label: '運用益', value: Math.round(result.totalReturn - result.totalInvestment), color: '#ffc658' }
-    ].map((item, index) => (
-      <Grid item xs={12} md={4} key={index}>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: index * 0.1 }}
-        >
-          <Box 
-            sx={{ 
-              textAlign: 'center', 
-              p: 3,
-              background: `linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)`,
-              borderRadius: 2,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255,255,255,0.3)',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: '0 12px 40px rgba(0,0,0,0.12)',
-              }
-            }}
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback || (
+        <Box sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="h5" color="error" gutterBottom>
+            エラーが発生しました
+          </Typography>
+          <Typography variant="body1" gutterBottom>
+            申し訳ありませんが、シミュレーターの実行中に問題が発生しました。
+          </Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => this.setState({ hasError: false, error: null })}
+            sx={{ mt: 2 }}
           >
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
-                color: 'text.secondary',
-                fontSize: '1.1rem',
-                fontWeight: 500,
-                mb: 1
-              }}
-            >
-              {item.label}
-            </Typography>
-            <Typography 
-              variant="h4" 
-              sx={{ 
-                background: `linear-gradient(45deg, ${item.color} 30%, ${item.color}88 90%)`,
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                color: 'transparent',
-                fontWeight: 'bold',
-                fontSize: '2.2rem'
-              }}
-            >
-              {formatYenValue(item.value)}
-            </Typography>
-          </Box>
-        </motion.div>
-      </Grid>
-    ))}
-  </Grid>
-);
-
-const InvestmentChart = ({ data }: { data: YearlyResult[] }) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const [chartType, setChartType] = useState<'line' | 'area'>('area');
-  const chartRef = useRef(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      {
-        threshold: 0.1,
-        rootMargin: '50px'
-      }
-    );
-
-    if (chartRef.current) {
-      observer.observe(chartRef.current);
+            再試行
+          </Button>
+        </Box>
+      );
     }
 
-    return () => observer.disconnect();
-  }, []);
+    return this.props.children;
+  }
+}
 
-  const handleChartTypeChange = (
-    event: React.MouseEvent<HTMLElement>,
-    newType: 'line' | 'area',
-  ) => {
-    if (newType !== null) {
-      setChartType(newType);
-    }
-  };
-
-  const commonProps = {
-    data,
-    margin: {
-      top: 20,
-      right: 30,
-      left: 20,
-      bottom: 20,
-    }
-  };
-
-  const commonAxisProps = {
-    xAxis: (
-      <XAxis 
-        dataKey="year" 
-        label={{ 
-          value: '経過年数', 
-          position: 'insideBottom', 
-          offset: -10
-        }}
-        tick={{ fontSize: 12 }}
-      />
-    ),
-    yAxis: (
-      <YAxis 
-        tickFormatter={formatYenValue}
-        width={80}
-        tick={{ fontSize: 12 }}
-        label={{ 
-          value: '金額', 
-          angle: -90, 
-          position: 'insideLeft',
-          offset: -5,
-          style: { textAnchor: 'middle', fontSize: 12 }
-        }}
-      />
-    )
-  };
-
-  return (
-    <Box 
-      ref={chartRef}
-      sx={{ 
-        width: '100%',
-        opacity: isVisible ? 1 : 0,
-        transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
-        transition: 'opacity 0.5s ease-out, transform 0.5s ease-out'
-      }}
-    >
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
-        <ToggleButtonGroup
-          value={chartType}
-          exclusive
-          onChange={handleChartTypeChange}
-          aria-label="グラフ表示形式"
-          size="small"
-          sx={{
-            '& .MuiToggleButton-root': {
-              px: 3,
-              py: 1,
-              borderRadius: '4px !important',
-              border: '1px solid rgba(0, 0, 0, 0.12)',
-              '&.Mui-selected': {
-                background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                color: 'white',
-                '&:hover': {
-                  background: 'linear-gradient(45deg, #1976D2 30%, #1CB5E0 90%)',
-                }
-              }
-            }
-          }}
-        >
-          <ToggleButton value="area">積み上げグラフ</ToggleButton>
-          <ToggleButton value="line">折れ線グラフ</ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
-
-      <Box sx={{ height: 400 }}>
-        <ResponsiveContainer>
-          {chartType === 'line' ? (
-            <LineChart {...commonProps}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.1)" />
-              {commonAxisProps.xAxis}
-              {commonAxisProps.yAxis}
-              <Tooltip 
-                formatter={(value: number) => [formatYenValue(value)]}
-                labelFormatter={(year) => `${year}年目`}
-                contentStyle={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  borderRadius: 8,
-                  border: 'none',
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-                  padding: '10px 14px',
-                }}
-              />
-              <Legend 
-                verticalAlign="top" 
-                height={36}
-                wrapperStyle={{
-                  paddingBottom: '20px',
-                  fontSize: '12px'
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="totalValue"
-                name="評価額"
-                stroke="#82ca9d"
-                strokeWidth={3}
-                dot={false}
-                activeDot={{ 
-                  r: 6,
-                  stroke: '#82ca9d',
-                  strokeWidth: 2,
-                  fill: '#fff'
-                }}
-                isAnimationActive={true}
-                animationDuration={2000}
-                animationEasing="ease-in-out"
-                animationBegin={0}
-              />
-              <Line
-                type="monotone"
-                dataKey="investment"
-                name="投資額"
-                stroke="#8884d8"
-                strokeWidth={3}
-                dot={false}
-                activeDot={{ 
-                  r: 6,
-                  stroke: '#8884d8',
-                  strokeWidth: 2,
-                  fill: '#fff'
-                }}
-                isAnimationActive={true}
-                animationDuration={2000}
-                animationEasing="ease-in-out"
-                animationBegin={300}
-              />
-              <Line
-                type="monotone"
-                dataKey="interest"
-                name="運用益"
-                stroke="#ffc658"
-                strokeWidth={3}
-                dot={false}
-                activeDot={{ 
-                  r: 6,
-                  stroke: '#ffc658',
-                  strokeWidth: 2,
-                  fill: '#fff'
-                }}
-                isAnimationActive={true}
-                animationDuration={2000}
-                animationEasing="ease-in-out"
-                animationBegin={600}
-              />
-            </LineChart>
-          ) : (
-            <AreaChart {...commonProps}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.1)" />
-              {commonAxisProps.xAxis}
-              {commonAxisProps.yAxis}
-              <Tooltip 
-                formatter={(value: number) => [formatYenValue(value)]}
-                labelFormatter={(year) => `${year}年目`}
-                contentStyle={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  borderRadius: 8,
-                  border: 'none',
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-                  padding: '10px 14px',
-                }}
-              />
-              <Legend 
-                verticalAlign="top" 
-                height={36}
-                wrapperStyle={{
-                  paddingBottom: '20px',
-                  fontSize: '12px'
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="investment"
-                name="投資額"
-                stackId="1"
-                stroke="#8884d8"
-                fill="#8884d8"
-                isAnimationActive={true}
-                animationDuration={2000}
-                animationEasing="ease-in-out"
-                animationBegin={0}
-              />
-              <Area
-                type="monotone"
-                dataKey="interest"
-                name="運用益"
-                stackId="1"
-                stroke="#ffc658"
-                fill="#ffc658"
-                isAnimationActive={true}
-                animationDuration={2000}
-                animationEasing="ease-in-out"
-                animationBegin={300}
-              />
-            </AreaChart>
-          )}
-        </ResponsiveContainer>
-      </Box>
-    </Box>
-  );
-};
-
-const YearlyDetails = ({ results }: { results: YearlyResult[] }) => (
-  <Grid container spacing={2}>
-    {results.map((yearResult) => (
-      <Grid item xs={12} sm={6} md={4} key={yearResult.year}>
-        <MotionCard
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3 }}
-          sx={{
-            p: 2,
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            '&:hover': {
-              transform: 'translateY(-4px)',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-              transition: 'all 0.3s ease',
-            },
-          }}
-        >
-          <Typography variant="h6" gutterBottom color="primary">
-            {yearResult.year}年目
-          </Typography>
-          <Divider sx={{ my: 1 }} />
-          <Typography variant="body2" color="textSecondary">
-            投資額: {formatYenValue(Math.round(yearResult.investment))}
-          </Typography>
-          <Typography variant="body2" color="textSecondary">
-            評価額: {formatYenValue(Math.round(yearResult.totalValue))}
-          </Typography>
-          <Typography variant="body2" color="textSecondary">
-            運用益: {formatYenValue(Math.round(yearResult.interest))}
-          </Typography>
-        </MotionCard>
-      </Grid>
-    ))}
-  </Grid>
-);
-
-// メインコンポーネント
+/**
+ * 資産運用シミュレーターのメインコンポーネント
+ * @returns 資産運用シミュレーターのコンポーネント
+ */
 export default function InvestmentSimulator() {
   const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
+  
+  // 状態管理
   const [initialInvestment, setInitialInvestment] = useState<string>('0');
   const [monthlyInvestment, setMonthlyInvestment] = useState<string>('');
   const [annualReturn, setAnnualReturn] = useState<string>('');
   const [years, setYears] = useState<string>('');
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [chartKey, setChartKey] = useState<number>(0);
+  
+  // 入力エラー状態
+  const [errors, setErrors] = useState({
+    initialInvestment: false,
+    monthlyInvestment: false,
+    annualReturn: false,
+    years: false
+  });
 
-  const inputFields: InputField[] = [
+  // 入力値の検証
+  const validateInputs = useCallback(() => {
+    const newErrors = {
+      initialInvestment: !isValidNumber(initialInvestment),
+      monthlyInvestment: !isValidNumber(monthlyInvestment),
+      annualReturn: !isValidDecimal(annualReturn, 0, 100, 1),
+      years: !isValidInteger(years, 1, 100)
+    };
+    
+    setErrors(newErrors);
+    
+    return !Object.values(newErrors).some(error => error);
+  }, [initialInvestment, monthlyInvestment, annualReturn, years]);
+
+  // 初期投資額の変更ハンドラー
+  const handleInitialInvestmentChange = useCallback((value: string) => {
+    setInitialInvestment(value);
+    setErrors(prev => ({ ...prev, initialInvestment: false }));
+  }, []);
+
+  // 毎月の積立金額の変更ハンドラー
+  const handleMonthlyInvestmentChange = useCallback((value: string) => {
+    setMonthlyInvestment(value);
+    setErrors(prev => ({ ...prev, monthlyInvestment: false }));
+  }, []);
+
+  // 年利の変更ハンドラー
+  const handleAnnualReturnChange = useCallback((value: string) => {
+    setAnnualReturn(value);
+    setErrors(prev => ({ ...prev, annualReturn: false }));
+  }, []);
+
+  // 積立期間の変更ハンドラー
+  const handleYearsChange = useCallback((value: string) => {
+    if (value === '') {
+      setYears('');
+      return;
+    }
+    const numValue = parseInt(value);
+    if (!isNaN(numValue) && numValue <= 100) {
+      setYears(value);
+      setErrors(prev => ({ ...prev, years: false }));
+    }
+  }, []);
+
+  // 入力フィールドの設定
+  const inputFields: InputFieldProps[] = [
     {
       label: '初期投資額（万円）',
       value: initialInvestment,
-      onChange: setInitialInvestment,
-      helperText: '1万円単位で入力してください',
-      inputProps: { min: 0, step: 1 }
+      onChange: handleInitialInvestmentChange,
+      helperText: errors.initialInvestment ? '有効な数値を入力してください' : '1万円単位で入力してください',
+      inputProps: { min: 0, step: 1 },
+      error: errors.initialInvestment
     },
     {
       label: '毎月の積立金額（万円）',
       value: monthlyInvestment,
-      onChange: setMonthlyInvestment,
-      helperText: '1万円単位で入力してください',
-      inputProps: { min: 0, step: 1 }
+      onChange: handleMonthlyInvestmentChange,
+      helperText: errors.monthlyInvestment ? '有効な数値を入力してください' : '1万円単位で入力してください',
+      inputProps: { min: 0, step: 1 },
+      error: errors.monthlyInvestment
     },
     {
       label: '年利（%）',
       value: annualReturn,
-      onChange: setAnnualReturn,
-      helperText: '小数点1桁まで入力可能',
-      inputProps: { min: 0, step: 0.1 }
+      onChange: handleAnnualReturnChange,
+      helperText: errors.annualReturn ? '0〜100の範囲で入力してください' : '小数点1桁まで入力可能',
+      inputProps: { min: 0, max: 100, step: 0.1 },
+      error: errors.annualReturn
     },
     {
       label: '積立期間（年）',
       value: years,
-      onChange: (value) => {
-        if (value === '') {
-          setYears('');
-          return;
-        }
-        const numValue = parseInt(value);
-        if (!isNaN(numValue) && numValue <= 100) {
-          setYears(value);
-        }
-      },
-      helperText: '1年から100年まで設定可能',
-      inputProps: { min: 1, max: 100, step: 1 }
+      onChange: handleYearsChange,
+      helperText: errors.years ? '1〜100の範囲で入力してください' : '1年から100年まで設定可能',
+      inputProps: { min: 1, max: 100, step: 1 },
+      error: errors.years
     }
   ];
 
-  const calculateInvestment = () => {
-    setChartKey(prev => prev + 1); // グラフを強制的に再レンダリング
-    const initial = parseFloat(initialInvestment) * 10000;
-    const monthly = parseFloat(monthlyInvestment) * 10000;
-    const annual = parseFloat(annualReturn) / 100;
-    const period = parseInt(years);
-
-    if (isNaN(initial) || isNaN(monthly) || isNaN(annual) || isNaN(period)) {
+  // シミュレーション計算ハンドラー
+  const calculateInvestmentHandler = useCallback(() => {
+    // 入力値の検証
+    if (!validateInputs()) {
       return;
     }
+    
+    // グラフを強制的に再レンダリング
+    setChartKey(prev => prev + 1);
+    
+    // 入力値の変換
+    const initial = convertToYen(initialInvestment);
+    const monthly = convertToYen(monthlyInvestment);
+    const annual = convertToDecimal(annualReturn);
+    const period = parseInt(years);
 
-    const yearlyResults: YearlyResult[] = [];
-    let totalValue = initial;
-    let cumulativeInvestment = initial;
-
-    for (let year = 1; year <= period; year++) {
-      const yearlyInvestment = monthly * 12;
-      const startValue = totalValue;
-      cumulativeInvestment += yearlyInvestment;
-      totalValue = (startValue + yearlyInvestment) * (1 + annual);
-      
-      yearlyResults.push({
-        year,
-        investment: cumulativeInvestment,
-        totalValue,
-        interest: totalValue - cumulativeInvestment,
-      });
-    }
-
-    setResult({
-      totalInvestment: initial + (monthly * 12 * period),
-      totalReturn: totalValue,
-      yearlyResults,
+    // シミュレーション計算
+    const result = calculateInvestment({
+      initialInvestment: initial,
+      monthlyInvestment: monthly,
+      annualReturn: annual,
+      years: period
     });
-  };
+
+    // 結果の設定
+    setResult(result);
+  }, [initialInvestment, monthlyInvestment, annualReturn, years, validateInputs]);
 
   return (
-    <Container maxWidth="lg" sx={{ py: 6 }}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Paper 
-          elevation={0}
-          sx={{ 
-            p: 4,
-            background: 'linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
-            borderRadius: 4,
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.3)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-          }}
+    <ErrorBoundary>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <ThemeToggle />
+        
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
         >
-          <Typography 
-            variant="h3" 
-            align="center"
-            gutterBottom
-            sx={{ 
-              mb: 4,
-              background: 'linear-gradient(45deg, #2196f3 30%, #21CBF3 90%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              color: 'transparent',
-              fontWeight: 900,
-              letterSpacing: '-0.5px',
-              textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
-            }}
-          >
-            資産運用シミュレーター
-          </Typography>
-
-          <Card 
+          <Paper 
             elevation={0}
             sx={{ 
-              mb: 4, 
-              background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+              p: 4,
+              background: isDarkMode 
+                ? `linear-gradient(145deg, ${alpha(theme.palette.background.paper, 0.9)} 0%, ${alpha(theme.palette.background.paper, 0.7)} 100%)`
+                : 'linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
+              borderRadius: 4,
               backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255,255,255,0.3)',
-              borderRadius: 3,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+              border: `1px solid ${isDarkMode ? alpha(theme.palette.divider, 0.3) : 'rgba(255,255,255,0.3)'}`,
+              boxShadow: isDarkMode 
+                ? '0 8px 32px rgba(0,0,0,0.2)' 
+                : '0 8px 32px rgba(0,0,0,0.08)',
             }}
           >
-            <CardContent sx={{ p: 4 }}>
-              <InputFields fields={inputFields} />
-              <Box sx={{ mt: 4 }}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={calculateInvestment}
-                  fullWidth
-                  sx={{
-                    py: 2,
-                    background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                    boxShadow: '0 8px 16px rgba(33, 203, 243, .3)',
-                    borderRadius: 2,
-                    fontSize: '1.1rem',
-                    fontWeight: 'bold',
-                    letterSpacing: '1px',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      transform: 'scale(1.02) translateY(-2px)',
-                      boxShadow: '0 12px 20px rgba(33, 203, 243, .4)',
-                    },
-                  }}
-                >
-                  シミュレーション開始
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
-
-          {result && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
+            <Typography 
+              variant="h3" 
+              align="center"
+              gutterBottom
+              sx={{ 
+                mb: 4,
+                background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${alpha(theme.palette.primary.main, 0.8)} 90%)`,
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                color: 'transparent',
+                fontWeight: 900,
+                letterSpacing: '-0.5px',
+                textShadow: isDarkMode 
+                  ? '2px 2px 4px rgba(0,0,0,0.3)' 
+                  : '2px 2px 4px rgba(0,0,0,0.1)',
+              }}
             >
-              <Grid container spacing={4}>
-                <Grid item xs={12}>
-                  <Card 
-                    elevation={0}
-                    sx={{ 
-                      background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
-                      backdropFilter: 'blur(10px)',
-                      border: '1px solid rgba(255,255,255,0.3)',
-                      borderRadius: 3,
-                      boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-                    }}
-                  >
-                    <CardContent sx={{ p: 4 }}>
-                      <Typography 
-                        variant="h5" 
-                        gutterBottom 
-                        sx={{ 
-                          color: theme.palette.primary.main,
-                          fontWeight: 700,
-                          mb: 3
-                        }}
-                      >
-                        シミュレーション結果
-                      </Typography>
-                      <ResultSummary result={result} />
-                    </CardContent>
-                  </Card>
-                </Grid>
+              資産運用シミュレーター
+            </Typography>
 
-                <Grid item xs={12}>
-                  <Card 
-                    elevation={0}
-                    sx={{ 
-                      background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
-                      backdropFilter: 'blur(10px)',
-                      border: '1px solid rgba(255,255,255,0.3)',
-                      borderRadius: 3,
-                      boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-                    }}
-                  >
-                    <CardContent sx={{ p: 4 }}>
-                      <Typography 
-                        variant="h5" 
-                        gutterBottom 
-                        sx={{ 
-                          color: theme.palette.primary.main,
-                          fontWeight: 700,
-                          mb: 3
-                        }}
-                      >
-                        資産推移グラフ
-                      </Typography>
-                      <motion.div
-                        key={chartKey}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.5 }}
-                      >
-                        <InvestmentChart data={result.yearlyResults} />
-                      </motion.div>
-                    </CardContent>
-                  </Card>
-                </Grid>
+            <Card 
+              elevation={0}
+              sx={{ 
+                mb: 4, 
+                background: isDarkMode 
+                  ? alpha(theme.palette.background.paper, 0.8)
+                  : 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+                backdropFilter: 'blur(10px)',
+                border: `1px solid ${isDarkMode ? alpha(theme.palette.divider, 0.3) : 'rgba(255,255,255,0.3)'}`,
+                borderRadius: 3,
+                boxShadow: isDarkMode 
+                  ? '0 8px 32px rgba(0,0,0,0.2)' 
+                  : '0 8px 32px rgba(0,0,0,0.08)',
+              }}
+            >
+              <CardContent sx={{ p: 4 }}>
+                <Box role="form" aria-label="投資シミュレーション入力フォーム">
+                  <InputFields fields={inputFields} />
+                  <Box sx={{ mt: 4 }}>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={calculateInvestmentHandler}
+                      fullWidth
+                      aria-label="シミュレーション開始"
+                      sx={{
+                        py: 2,
+                        background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${alpha(theme.palette.primary.main, 0.8)} 90%)`,
+                        boxShadow: `0 8px 16px ${alpha(theme.palette.primary.main, 0.3)}`,
+                        borderRadius: 2,
+                        fontSize: '1.1rem',
+                        fontWeight: 'bold',
+                        letterSpacing: '1px',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          transform: 'scale(1.02) translateY(-2px)',
+                          boxShadow: `0 12px 20px ${alpha(theme.palette.primary.main, 0.4)}`,
+                        },
+                      }}
+                    >
+                      シミュレーション開始
+                    </Button>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
 
-                <Grid item xs={12}>
-                  <Card 
-                    elevation={0}
-                    sx={{ 
-                      background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
-                      backdropFilter: 'blur(10px)',
-                      border: '1px solid rgba(255,255,255,0.3)',
-                      borderRadius: 3,
-                      boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-                    }}
-                  >
-                    <CardContent sx={{ p: 4 }}>
-                      <Typography 
-                        variant="h5" 
-                        gutterBottom 
-                        sx={{ 
-                          color: theme.palette.primary.main,
-                          fontWeight: 700,
-                          mb: 3
-                        }}
-                      >
-                        年次詳細
-                      </Typography>
-                      <YearlyDetails results={result.yearlyResults} />
-                    </CardContent>
-                  </Card>
+            {result && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <Grid container spacing={4}>
+                  <Grid item xs={12}>
+                    <Card 
+                      elevation={0}
+                      sx={{ 
+                        background: isDarkMode 
+                          ? alpha(theme.palette.background.paper, 0.8)
+                          : 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+                        backdropFilter: 'blur(10px)',
+                        border: `1px solid ${isDarkMode ? alpha(theme.palette.divider, 0.3) : 'rgba(255,255,255,0.3)'}`,
+                        borderRadius: 3,
+                        boxShadow: isDarkMode 
+                          ? '0 8px 32px rgba(0,0,0,0.2)' 
+                          : '0 8px 32px rgba(0,0,0,0.08)',
+                      }}
+                    >
+                      <CardContent sx={{ p: 4 }}>
+                        <Typography 
+                          variant="h5" 
+                          gutterBottom 
+                          id="results-heading"
+                          sx={{ 
+                            color: theme.palette.primary.main,
+                            fontWeight: 700,
+                            mb: 3
+                          }}
+                        >
+                          シミュレーション結果
+                        </Typography>
+                        <Box role="region" aria-labelledby="results-heading">
+                          <ResultSummary result={result} />
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Card 
+                      elevation={0}
+                      sx={{ 
+                        background: isDarkMode 
+                          ? alpha(theme.palette.background.paper, 0.8)
+                          : 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+                        backdropFilter: 'blur(10px)',
+                        border: `1px solid ${isDarkMode ? alpha(theme.palette.divider, 0.3) : 'rgba(255,255,255,0.3)'}`,
+                        borderRadius: 3,
+                        boxShadow: isDarkMode 
+                          ? '0 8px 32px rgba(0,0,0,0.2)' 
+                          : '0 8px 32px rgba(0,0,0,0.08)',
+                      }}
+                    >
+                      <CardContent sx={{ p: 4 }}>
+                        <Typography 
+                          variant="h5" 
+                          gutterBottom 
+                          id="chart-heading"
+                          sx={{ 
+                            color: theme.palette.primary.main,
+                            fontWeight: 700,
+                            mb: 3
+                          }}
+                        >
+                          資産推移グラフ
+                        </Typography>
+                        <Box role="region" aria-labelledby="chart-heading">
+                          <motion.div
+                            key={chartKey}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.5 }}
+                          >
+                            <InvestmentChart data={result.yearlyResults} />
+                          </motion.div>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Card 
+                      elevation={0}
+                      sx={{ 
+                        background: isDarkMode 
+                          ? alpha(theme.palette.background.paper, 0.8)
+                          : 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+                        backdropFilter: 'blur(10px)',
+                        border: `1px solid ${isDarkMode ? alpha(theme.palette.divider, 0.3) : 'rgba(255,255,255,0.3)'}`,
+                        borderRadius: 3,
+                        boxShadow: isDarkMode 
+                          ? '0 8px 32px rgba(0,0,0,0.2)' 
+                          : '0 8px 32px rgba(0,0,0,0.08)',
+                      }}
+                    >
+                      <CardContent sx={{ p: 4 }}>
+                        <Typography 
+                          variant="h5" 
+                          gutterBottom 
+                          id="yearly-details-heading"
+                          sx={{ 
+                            color: theme.palette.primary.main,
+                            fontWeight: 700,
+                            mb: 3
+                          }}
+                        >
+                          年次詳細
+                        </Typography>
+                        <Box role="region" aria-labelledby="yearly-details-heading">
+                          <YearlyDetails results={result.yearlyResults} />
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
                 </Grid>
-              </Grid>
-            </motion.div>
-          )}
-        </Paper>
-      </motion.div>
-    </Container>
+              </motion.div>
+            )}
+          </Paper>
+        </motion.div>
+      </Container>
+    </ErrorBoundary>
   );
 } 

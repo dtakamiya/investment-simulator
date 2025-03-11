@@ -30,7 +30,7 @@ import {
 import { motion } from 'framer-motion';
 
 // モーションコンポーネント
-const MotionCard = motion(Card);
+const MotionCard = motion.create(Card);
 
 // 型定義
 interface YearlyResult {

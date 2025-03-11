@@ -65,14 +65,6 @@ const formatYenValue = (value: number): string => {
   return `${value.toLocaleString()}円`;
 };
 
-const calculateYAxisDomain = (data: YearlyResult[]): [number, number] => {
-  const maxValue = Math.max(...data.map(d => Math.max(d.totalValue, d.investment, d.interest)));
-  const minValue = 0;
-  const step = Math.pow(10, Math.floor(Math.log10(maxValue)));
-  const roundedMax = Math.ceil(maxValue / step) * step;
-  return [minValue, roundedMax];
-};
-
 // サブコンポーネント
 const InputFields = ({ fields }: { fields: InputField[] }) => {
   const theme = useTheme();

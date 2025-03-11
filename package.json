@@ -1,12 +1,15 @@
 {
-  "name": "todo-app",
+  "name": "investment-simulator",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://dtakamiya.github.io/investment-simulator",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d out"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -29,6 +32,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.2.1",
+    "gh-pages": "^6.3.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

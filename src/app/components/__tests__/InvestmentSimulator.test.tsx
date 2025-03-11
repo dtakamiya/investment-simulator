@@ -5,20 +5,48 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import InvestmentSimulator from '../InvestmentSimulator';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+
+// ThemeToggleコンポーネントをモック
+jest.mock('../../components/ThemeToggle', () => {
+  return {
+    __esModule: true,
+    default: () => <div data-testid="theme-toggle-mock">テーマ切替</div>
+  };
+});
+
+// 完全なテーマモック
+const mockTheme = createTheme({
+  palette: {
+    mode: 'light',
+    primary: { main: '#2196f3' },
+    text: { secondary: '#666666' }
+  },
+  typography: {
+    fontWeightBold: 700,
+    fontWeightMedium: 500,
+    fontWeightRegular: 400,
+    fontWeightLight: 300
+  }
+});
 
 // ThemeProviderのモック
 jest.mock('@mui/material', () => {
   const originalModule = jest.requireActual('@mui/material');
   return {
     ...originalModule,
-    useTheme: () => ({
-      palette: {
-        primary: { main: '#2196f3' },
-        text: { secondary: '#666666' }
-      }
-    }),
+    useTheme: () => mockTheme,
   };
 });
+
+// useThemeModeのモック
+jest.mock('../../theme', () => ({
+  useThemeMode: () => ({
+    theme: mockTheme,
+    mode: 'light',
+    toggleThemeMode: jest.fn()
+  })
+}));
 
 // Rechartsのモック
 jest.mock('recharts', () => {
@@ -48,6 +76,15 @@ jest.mock('framer-motion', () => {
   };
 });
 
+// テスト用のラッパーコンポーネント
+const TestWrapper = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <ThemeProvider theme={mockTheme}>
+      {children}
+    </ThemeProvider>
+  );
+};
+
 describe('InvestmentSimulator', () => {
   beforeEach(() => {
     // IntersectionObserverのモック
@@ -61,7 +98,7 @@ describe('InvestmentSimulator', () => {
   });
 
   test('初期レンダリング時に入力フィールドが表示される', () => {
-    render(<InvestmentSimulator />);
+    render(<InvestmentSimulator />, { wrapper: TestWrapper });
     
     expect(screen.getByLabelText('初期投資額（万円）')).toBeInTheDocument();
     expect(screen.getByLabelText('毎月の積立金額（万円）')).toBeInTheDocument();
@@ -71,7 +108,7 @@ describe('InvestmentSimulator', () => {
   });
 
   test('入力フィールドに値を入力できる', async () => {
-    render(<InvestmentSimulator />);
+    render(<InvestmentSimulator />, { wrapper: TestWrapper });
     
     const initialInvestmentInput = screen.getByLabelText('初期投資額（万円）');
     const monthlyInvestmentInput = screen.getByLabelText('毎月の積立金額（万円）');
@@ -93,7 +130,7 @@ describe('InvestmentSimulator', () => {
   });
 
   test('シミュレーション実行後に結果が表示される', async () => {
-    render(<InvestmentSimulator />);
+    render(<InvestmentSimulator />, { wrapper: TestWrapper });
     
     // 入力値を設定
     const initialInvestmentInput = screen.getByLabelText('初期投資額（万円）');
@@ -125,7 +162,7 @@ describe('InvestmentSimulator', () => {
   });
 
   test('年利に不正な値を入力するとシミュレーション結果が表示されない', async () => {
-    render(<InvestmentSimulator />);
+    render(<InvestmentSimulator />, { wrapper: TestWrapper });
     
     // 入力値を設定（年利に不正な値）
     const initialInvestmentInput = screen.getByLabelText('初期投資額（万円）');
@@ -148,7 +185,7 @@ describe('InvestmentSimulator', () => {
   });
 
   test('積立期間に100を超える値を入力できない', async () => {
-    render(<InvestmentSimulator />);
+    render(<InvestmentSimulator />, { wrapper: TestWrapper });
     
     const yearsInput = screen.getByLabelText('積立期間（年）');
     
@@ -159,7 +196,7 @@ describe('InvestmentSimulator', () => {
   });
 
   test('グラフタイプを切り替えることができる', async () => {
-    render(<InvestmentSimulator />);
+    render(<InvestmentSimulator />, { wrapper: TestWrapper });
     
     // 入力値を設定
     const initialInvestmentInput = screen.getByLabelText('初期投資額（万円）');
